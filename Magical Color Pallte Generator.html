@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonious Color Palette Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-dark: 222 47% 11%;
+            --bg: 222 47% 13%;
+            --bg-light: 222 47% 15%;
+            --border-color: 217 33% 25%;
+            --text-primary: 217 15% 90%;
+            --text-secondary: 217 10% 60%;
+            --accent: 258 95% 70%;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'Space Mono', monospace;
+        }
+
+        html.light {
+            --bg-dark: 222 20% 98%;
+            --bg: 222 20% 100%;
+            --bg-light: 222 20% 95%;
+            --border-color: 217 20% 88%;
+            --text-primary: 217 15% 20%;
+            --text-secondary: 217 10% 45%;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: hsl(var(--bg));
+            color: hsl(var(--text-primary));
+            transition: background-color 300ms ease, color 300ms ease;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: hsl(var(--bg-dark)); }
+        ::-webkit-scrollbar-thumb { background-color: hsl(var(--accent)); border-radius: 10px; border: 2px solid hsl(var(--bg-dark)); }
+        
+        /* Custom Styles for Interactive Elements */
+        .glass-panel {
+            background-color: hsla(var(--bg-light), 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid hsl(var(--border-color));
+        }
+        
+        /* Dropdown Fix */
+        select {
+            color-scheme: dark;
+        }
+        html.light select {
+            color-scheme: light;
+        }
+        select option {
+            background-color: hsl(var(--bg-dark));
+            color: hsl(var(--text-primary));
+        }
+        
+        input[type="color"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 48px;
+            padding: 0;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: transform 200ms ease;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border-radius: 0.5rem;
+            border: 1px solid hsl(var(--border-color));
+        }
+        input[type="color"]:hover {
+            transform: scale(1.03);
+        }
+
+        /* Custom Range Slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: hsl(var(--border-color));
+            border-radius: 5px;
+            outline: none;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            border: 2px solid hsl(var(--accent));
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 200ms ease;
+        }
+         input[type="range"]::-webkit-slider-thumb:hover {
+            background-color: hsl(var(--accent) / 0.8);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            border: 2px solid hsl(var(--accent));
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Live Preview Styling */
+        .live-preview-bg {
+            background-color: var(--color-bg, #111);
+            color: var(--color-text, #eee);
+        }
+        .live-preview-card {
+            background-color: var(--color-surface, #222);
+            border: 1px solid var(--color-border, #444);
+            color: var(--color-text, #eee);
+        }
+        .live-preview-text-muted {
+            color: var(--color-text-muted, #888);
+        }
+        .live-preview-primary {
+            background-color: var(--color-primary, #888);
+            color: var(--color-primary-text, #111);
+        }
+        .live-preview-secondary {
+            background-color: var(--color-secondary, #666);
+            color: var(--color-secondary-text, #111);
+        }
+         .live-preview-accent {
+            color: var(--color-accent, #f0f);
+        }
+         .live-preview-accent-bg {
+            background-color: var(--color-accent, #f0f);
+            color: var(--color-accent-text, #111);
+        }
+        
+        /* View Transition API for smooth palette changes */
+        ::view-transition-old(palette-container),
+        ::view-transition-new(palette-container) {
+            animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in, 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+        }
+        ::view-transition-old(palette-container) {
+             animation-name: fade-out, slide-to-left;
+        }
+
+        @keyframes fade-in { from { opacity: 0; } }
+        @keyframes fade-out { to { opacity: 0; } }
+        @keyframes slide-from-right { from { transform: translateX(30px); } }
+        @keyframes slide-to-left { to { transform: translateX(-30px); } }
+        
+        /* Tooltip */
+        [data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: hsl(var(--accent));
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            pointer-events: none;
+            z-index: 10;
+        }
+        [data-tooltip]:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Export Modal Tabs */
+        .export-tab, .color-format-tab {
+             color: hsl(var(--text-secondary));
+        }
+        .export-tab.active, .color-format-tab.active {
+            background-color: hsl(var(--accent));
+            color: white;
+        }
+        html.light .export-tab, html.light .color-format-tab {
+             color: hsl(var(--text-secondary));
+        }
+        html.light .export-tab.active, html.light .color-format-tab.active {
+             color: white;
+        }
+        
+        #export-modal pre {
+            background-color: hsla(var(--bg-dark), 0.7);
+        }
+        html.light #export-modal pre {
+            background-color: hsla(var(--bg-light), 0.7);
+        }
+        
+    </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-purple-500/30">
+
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        <!-- Left Control Panel -->
+        <aside class="w-full lg:w-[340px] lg:h-screen lg:overflow-y-auto p-4 lg:p-6 flex flex-col">
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-lg grid place-content-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.34 0 .67-.02 1-.05M7.34 16.66C8.75 18.27 10.74 19.5 12 19.5c.34 0 .67-.02 1-.05M2 12h5m15 0h-5m-2.66-4.66C15.25 5.73 13.26 4.5 12 4.5c-.34 0-.67.02-1 .05"></path><path d="M12 22a10 10 0 0 0 8.66-5.34"></path><path d="m22 12-5-5"></path></svg>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold" style="color: hsl(var(--text-primary));">Rangarang!</h1>
+                            <p class="text-sm" style="color: hsl(var(--text-secondary));">Generate Harmonic Color Schemes in Seconds</p>
+                        </div>
+                    </div>
+                    <button id="theme-toggle-btn" class="relative w-10 h-10 rounded-full flex items-center justify-center" style="color: hsl(var(--text-secondary)); background-color: hsla(var(--bg-light), 0.6);" data-tooltip="Toggle Theme">
+                        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-all duration-300 transform"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute transition-all duration-300 transform"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4 glass-panel p-4 rounded-xl">
+                    <div>
+                        <label for="base-color-picker" class="text-sm font-medium mb-2 block">1. Base Color</label>
+                        <input type="color" id="base-color-picker" value="#8844ee">
+                    </div>
+                    <div>
+                        <label for="harmony-select" class="text-sm font-medium mb-2 block">2. Color Harmony</label>
+                        <select id="harmony-select" class="w-full p-2.5 rounded-lg border bg-transparent" style="border-color: hsl(var(--border-color));">
+                            <option value="analogous">Analogous</option>
+                            <option value="complementary">Complementary</option>
+                            <option value="split-complementary">Split Complementary</option>
+                            <option value="triadic" selected>Triadic</option>
+                            <option value="tetradic">Tetradic</option>
+                            <option value="monochromatic">Monochromatic</option>
+                        </select>
+                    </div>
+                    <div class="pt-2">
+                        <button id="shuffle-btn" class="w-full flex items-center justify-center gap-2 transition-colors duration-200 py-2.5 rounded-lg font-semibold" style="background-color: hsla(var(--border-color), 0.5); color: hsl(var(--text-primary));">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+                            Surprise Me
+                        </button>
+                    </div>
+                </div>
+
+                 <div class="space-y-4 glass-panel p-4 rounded-xl">
+                     <div class="flex justify-between items-center">
+                        <h2 class="text-base font-semibold">3. Palette Size</h2>
+                        <div class="flex items-center gap-2">
+                            <button id="remove-color-btn" class="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors" style="background-color: hsla(var(--border-color), 0.5);">-</button>
+                            <span id="color-count-display" class="font-mono text-lg w-8 text-center">5</span>
+                            <button id="add-color-btn" class="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors" style="background-color: hsla(var(--border-color), 0.5);">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                 <div class="space-y-4 glass-panel p-4 rounded-xl">
+                     <h2 class="text-base font-semibold">4. Fine Tune Palette</h2>
+                     <div>
+                        <label for="lightness-slider" class="text-sm font-medium mb-2 block">Lightness Variation: <span id="lightness-value">0%</span></label>
+                        <input type="range" id="lightness-slider" min="-20" max="20" value="0" step="1">
+                    </div>
+                    <div>
+                        <label for="chroma-slider" class="text-sm font-medium mb-2 block">Chroma (Saturation): <span id="chroma-value">0%</span></label>
+                        <input type="range" id="chroma-slider" min="-20" max="20" value="0" step="1">
+                    </div>
+                 </div>
+                 
+                <div class="space-y-4 glass-panel p-4 rounded-xl">
+                    <h2 class="text-base font-semibold" style="color: hsl(var(--text-primary));">5. Export & Share</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="open-export-modal-btn" class="col-span-2 flex items-center justify-center gap-2 transition-colors duration-200 py-2.5 rounded-lg font-semibold text-white" style="background-color: hsl(var(--accent));">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            Export Palette
+                        </button>
+                        <button data-export="url" class="export-url-btn col-span-2 flex items-center justify-center gap-2 transition-colors duration-200 py-2.5 rounded-lg" style="background-color: hsla(var(--border-color), 0.5);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                            <span>Share URL</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="text-center text-xs mt-auto pt-6 space-y-1" style="color: hsl(var(--text-secondary));">
+                <p>
+                    Copy Rights: 
+                    <a href="https://github.com/Ham3dParsa" target="_blank" rel="noopener noreferrer" class="font-semibold hover:underline" style="color: hsl(var(--text-primary));">
+                        Ham3dParsa
+                    </a>
+                </p>
+                <p>
+                    Follow me on 
+                    <a href="https://t.me/Ham3dParsa_FX" target="_blank" rel="noopener noreferrer" class="font-semibold hover:underline" style="color: hsl(var(--text-primary));">
+                        Telegram
+                    </a>
+                </p>
+            </footer>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-4 lg:p-8">
+            <h2 class="text-2xl font-bold mb-4 border-b pb-2" style="color: hsl(var(--text-primary)); border-color: hsl(var(--border-color));">Accent Palette</h2>
+            <div id="palette-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
+                <!-- Color swatches will be injected here -->
+            </div>
+            
+            <h2 class="text-2xl font-bold mb-4 border-b pb-2" style="color: hsl(var(--text-primary)); border-color: hsl(var(--border-color));">UI Colors</h2>
+            <div id="ui-colors-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <!-- UI Color swatches will be injected here -->
+            </div>
+
+            <h2 class="text-2xl font-bold mb-4 border-b pb-2" style="color: hsl(var(--text-primary)); border-color: hsl(var(--border-color));">Live Preview</h2>
+            <div class="live-preview-bg p-6 rounded-xl transition-colors duration-300">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left column -->
+                    <div class="space-y-4">
+                        <div class="live-preview-card p-4 rounded-lg space-y-2">
+                            <h3 class="text-lg font-semibold">Example Card</h3>
+                            <p class="live-preview-text-muted text-sm">This card uses the generated surface, border, and text colors.</p>
+                        </div>
+                        <h1 class="text-4xl font-bold">The quick brown fox.</h1>
+                        <p>This is paragraph text. It provides context and detail. The <span class="live-preview-accent font-semibold">accent color</span> can be used for links or important highlights within your text content.</p>
+                    </div>
+                    <!-- Right column -->
+                    <div class="space-y-4">
+                        <button class="live-preview-primary w-full py-2 rounded-lg font-semibold transition-transform hover:scale-[1.02]">Primary Button</button>
+                        <button class="live-preview-secondary w-full py-2 rounded-lg font-semibold transition-transform hover:scale-[1.02]">Secondary Button</button>
+                        <div class="live-preview-accent-bg w-full p-4 rounded-lg">
+                            <p class="font-semibold text-center">Accent Background</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Export Modal -->
+    <div id="export-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-2xl rounded-xl shadow-lg transform scale-95 transition-all duration-300">
+            <div class="p-4 border-b flex justify-between items-center" style="border-color: hsl(var(--border-color));">
+                <h2 class="text-lg font-semibold">Export Palette</h2>
+                <button id="close-modal-btn" class="p-2 rounded-full transition-colors hover:bg-white/10" style="color: hsl(var(--text-secondary));" data-tooltip="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-2 sm:p-4">
+                <div id="export-tabs-container" class="flex items-center border rounded-lg p-1 space-x-1 mb-4" style="border-color: hsl(var(--border-color));">
+                    <button data-export="css" class="export-tab flex-1 p-2 rounded-md text-sm font-medium transition-colors active">CSS</button>
+                    <button data-export="scss" class="export-tab flex-1 p-2 rounded-md text-sm font-medium transition-colors">SCSS</button>
+                    <button data-export="tailwind" class="export-tab flex-1 p-2 rounded-md text-sm font-medium transition-colors">Tailwind</button>
+                    <button data-export="json" class="export-tab flex-1 p-2 rounded-md text-sm font-medium transition-colors">JSON</button>
+                    <button data-export="svg" class="export-tab flex-1 p-2 rounded-md text-sm font-medium transition-colors">SVG</button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="text-sm font-medium mb-2 block" style="color: hsl(var(--text-secondary));">Color Format</label>
+                    <div id="export-color-format-container" class="flex items-center border rounded-lg p-1 space-x-1" style="border-color: hsl(var(--border-color));">
+                        <button data-format="hex" class="color-format-tab flex-1 p-1.5 rounded-md text-xs font-medium transition-colors active">HEX</button>
+                        <button data-format="rgb" class="color-format-tab flex-1 p-1.5 rounded-md text-xs font-medium transition-colors">RGB</button>
+                        <button data-format="hsl" class="color-format-tab flex-1 p-1.5 rounded-md text-xs font-medium transition-colors">HSL</button>
+                        <button data-format="oklch" class="color-format-tab flex-1 p-1.5 rounded-md text-xs font-medium transition-colors">OKLCH</button>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <button id="copy-code-btn" class="absolute top-2 right-2 py-1.5 px-3 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5" style="background-color: hsla(var(--border-color), 0.5); color: hsl(var(--text-primary));" data-tooltip="Copy to Clipboard">
+                        <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <svg class="check-icon hidden" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span class="copy-text">Copy</span>
+                    </button>
+                    <pre class="p-4 rounded-lg max-h-[45vh] overflow-y-auto w-full"><code id="export-content" class="font-mono text-sm whitespace-pre-wrap break-words"></code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM ELEMENTS ---
+        const elements = {
+            baseColorPicker: document.getElementById('base-color-picker'),
+            harmonySelect: document.getElementById('harmony-select'),
+            paletteContainer: document.getElementById('palette-container'),
+            shuffleBtn: document.getElementById('shuffle-btn'),
+            lightnessSlider: document.getElementById('lightness-slider'),
+            chromaSlider: document.getElementById('chroma-slider'),
+            lightnessValue: document.getElementById('lightness-value'),
+            chromaValue: document.getElementById('chroma-value'),
+            exportModal: document.getElementById('export-modal'),
+            closeModalBtn: document.getElementById('close-modal-btn'),
+            openExportModalBtn: document.getElementById('open-export-modal-btn'),
+            exportUrlBtn: document.querySelector('.export-url-btn'),
+            copyCodeBtn: document.getElementById('copy-code-btn'),
+            exportContent: document.getElementById('export-content'),
+            exportTabsContainer: document.getElementById('export-tabs-container'),
+            exportColorFormatContainer: document.getElementById('export-color-format-container'),
+            themeToggleBtn: document.getElementById('theme-toggle-btn'),
+            themeIconSun: document.getElementById('theme-icon-sun'),
+            themeIconMoon: document.getElementById('theme-icon-moon'),
+            addColorBtn: document.getElementById('add-color-btn'),
+            removeColorBtn: document.getElementById('remove-color-btn'),
+            colorCountDisplay: document.getElementById('color-count-display'),
+            uiColorsContainer: document.getElementById('ui-colors-container'),
+        };
+
+        // --- STATE ---
+        let state = {
+            baseColor: { l: 0.63, c: 0.13, h: 282.7 },
+            harmony: 'triadic',
+            lockedColors: {},
+            lightnessVariation: 0,
+            chromaVariation: 0,
+            palette: [],
+            theme: 'dark',
+            colorCount: 5,
+            currentExportFormat: 'css',
+            currentExportColorFormat: 'hex',
+        };
+        
+        // --- COLOR CONVERSION & UTILITIES ---
+        const srgbToLinear = c => (c > 0.04045) ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92;
+        const linearToSrgb = c => (c > 0.0031308) ? 1.055 * Math.pow(c, 1 / 2.4) - 0.055 : 12.92 * c;
+        function oklchToRgb(oklch) {
+            const hRad = oklch.h * Math.PI / 180;
+            const l_ = oklch.l;
+            const m_ = oklch.c * Math.cos(hRad);
+            const s_ = oklch.c * Math.sin(hRad);
+            const l = l_ + 0.3963377774 * m_ + 0.2158037573 * s_;
+            const m = l_ - 0.1055613458 * m_ - 0.0638541728 * s_;
+            const s = l_ - 0.0894841775 * m_ - 1.2914855480 * s_;
+            const l3 = l*l*l, m3 = m*m*m, s3 = s*s*s;
+            const r_ =  4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3;
+            const g_ = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3;
+            const b_ = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3;
+            return {
+                r: Math.round(Math.max(0, Math.min(1, linearToSrgb(r_))) * 255),
+                g: Math.round(Math.max(0, Math.min(1, linearToSrgb(g_))) * 255),
+                b: Math.round(Math.max(0, Math.min(1, linearToSrgb(b_))) * 255),
+            };
+        }
+        function rgbToHsl({r, g, b}) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            if (max === min) { h = s = 0; } 
+            else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+        }
+        function hexToOklch(hex) {
+            hex = hex.replace(/^#/, '');
+            const r = srgbToLinear(parseInt(hex.substring(0, 2), 16) / 255);
+            const g = srgbToLinear(parseInt(hex.substring(2, 4), 16) / 255);
+            const b = srgbToLinear(parseInt(hex.substring(4, 6), 16) / 255);
+            const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+            const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+            const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+            const l_ = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
+            const m_ = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+            const s_ = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+            const C = Math.sqrt(m_ * m_ + s_ * s_);
+            const h = (Math.atan2(s_, m_) * 180 / Math.PI + 360) % 360;
+            return { l: l_, c: C, h };
+        }
+        function oklchToHex(oklch) {
+            const { r, g, b } = oklchToRgb(oklch);
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+        const oklchToString = (c) => `oklch(${c.l.toFixed(3)} ${c.c.toFixed(3)} ${c.h.toFixed(1)})`;
+        function getAllColorFormats(oklch) {
+            const rgb = oklchToRgb(oklch);
+            const hsl = rgbToHsl(rgb);
+            return {
+                hex: oklchToHex(oklch),
+                rgb: `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`,
+                hsl: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`,
+                oklch: oklchToString(oklch),
+            };
+        }
+        
+        // --- PALETTE GENERATION & RENDERING ---
+        function generatePalette() {
+            const { l, c, h } = state.baseColor;
+            let palette = [];
+            let baseHues = [];
+            switch (state.harmony) {
+                case 'analogous':
+                    const step = 30 / Math.floor(state.colorCount / 2);
+                    baseHues = Array.from({ length: state.colorCount }, (_, i) => (h - (Math.floor(state.colorCount / 2) * step) + (i * step) + 360) % 360);
+                    palette = baseHues.map(hue => ({ l, c, h: hue }));
+                    break;
+                case 'complementary': baseHues = [h, (h + 180) % 360]; break;
+                case 'split-complementary': baseHues = [h, (h + 150) % 360, (h + 210) % 360]; break;
+                case 'tetradic': baseHues = [h, (h + 60) % 360, (h + 180) % 360, (h + 240) % 360]; break;
+                case 'monochromatic':
+                    const lStep = 0.5 / (state.colorCount > 1 ? state.colorCount - 1 : 1);
+                    palette = Array.from({ length: state.colorCount }, (_, i) => ({ l: Math.min(1, (l + 0.25) - (i * lStep)), c, h }));
+                    break;
+                case 'triadic': default: baseHues = [h, (h + 120) % 360, (h + 240) % 360];
+            }
+            if (state.harmony !== 'monochromatic' && state.harmony !== 'analogous') {
+                for (let i = 0; i < state.colorCount; i++) {
+                    const hue = baseHues[i % baseHues.length];
+                    const lightness = l - (Math.floor(i / baseHues.length) * 0.15);
+                    palette.push({ l: Math.max(0, lightness), c, h: hue });
+                }
+            }
+            return palette;
+        }
+
+        function getFinalPalette() {
+            return state.palette.map((color, i) => {
+                const finalColor = state.lockedColors[i] ? { ...state.lockedColors[i] } : { ...color };
+                finalColor.l = Math.max(0, Math.min(1, finalColor.l + state.lightnessVariation / 100));
+                finalColor.c = Math.max(0, finalColor.c * (1 + state.chromaVariation / 100));
+                return finalColor;
+            });
+        }
+        
+        function render() {
+            if (!document.startViewTransition) { updateUI(); return; }
+            document.startViewTransition(() => updateUI());
+        }
+        
+        function updateUI() {
+            state.palette = generatePalette();
+            const finalPalette = getFinalPalette();
+            renderAccentPalette(finalPalette);
+            renderUIColors();
+            updateLivePreview(finalPalette);
+        }
+
+        function renderAccentPalette(finalPalette) {
+            elements.paletteContainer.style.gridTemplateColumns = `repeat(${Math.min(state.colorCount, 5)}, minmax(0, 1fr))`;
+            elements.paletteContainer.innerHTML = '';
+            finalPalette.forEach((finalColor, i) => {
+                const hex = oklchToHex(finalColor);
+                const isLocked = !!state.lockedColors[i];
+                const swatch = document.createElement('div');
+                swatch.className = 'flex flex-col rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-1 transition-transform duration-200';
+                swatch.innerHTML = `
+                    <div class="h-32 md:h-40" style="background-color: ${oklchToString(finalColor)};"></div>
+                    <div class="p-3 flex-1 flex flex-col justify-between text-xs" style="background-color: hsl(var(--bg-light));">
+                        <div>
+                            <div class="font-bold text-sm mb-1" style="color: hsl(var(--text-primary));">${hex.toUpperCase()}</div>
+                            <div class="font-mono" style="color: hsl(var(--text-secondary));">${oklchToString(finalColor)}</div>
+                        </div>
+                         <div class="flex justify-end items-center mt-3 pt-2 border-t" style="border-color: hsl(var(--border-color));">
+                            <button class="copy-btn relative p-1" style="color: hsl(var(--text-secondary));" data-tooltip="Copy HEX" data-hex="${hex}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3z"/></svg>
+                            </button>
+                            <button class="lock-btn relative p-1 ${isLocked ? 'text-purple-400' : 'text-gray-400'} hover:text-purple-400" data-tooltip="Lock Color" data-index="${i}">
+                                ${isLocked ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11 1a2 2 0 0 0-2 2v4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h5V3a3 3 0 0 0-6 0v4a.5.5 0 0 1-1 0V3a4 4 0 0 1 8 0v4h1V9a2 2 0 0 0-2-2z"/></svg>'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                elements.paletteContainer.appendChild(swatch);
+            });
+        }
+        
+        function renderUIColors() {
+            elements.uiColorsContainer.innerHTML = '';
+            const baseHue = state.baseColor.h;
+            const uiColors = {
+                'Background': { l: state.theme === 'dark' ? 0.1 : 0.98, c: 0.02, h: baseHue },
+                'Surface': { l: state.theme === 'dark' ? 0.15 : 0.94, c: 0.03, h: baseHue },
+                'Border': { l: state.theme === 'dark' ? 0.25 : 0.88, c: 0.04, h: baseHue },
+                'Text': { l: state.theme === 'dark' ? 0.95 : 0.1, c: 0.02, h: baseHue },
+            };
+            for (const [name, color] of Object.entries(uiColors)) {
+                const hex = oklchToHex(color);
+                const swatch = document.createElement('div');
+                swatch.className = 'flex flex-col rounded-lg overflow-hidden shadow-lg';
+                swatch.innerHTML = `
+                    <div class="h-20" style="background-color: ${oklchToString(color)};"></div>
+                    <div class="p-3 text-xs flex-1" style="background-color: hsl(var(--bg-light));">
+                        <div class="font-bold text-sm" style="color: hsl(var(--text-primary));">${name}</div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="font-mono" style="color: hsl(var(--text-secondary));">${hex.toUpperCase()}</span>
+                            <button class="copy-btn relative p-1" style="color: hsl(var(--text-secondary));" data-tooltip="Copy HEX" data-hex="${hex}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3z"/></svg>
+                            </button>
+                        </div>
+                    </div>`;
+                elements.uiColorsContainer.appendChild(swatch);
+            }
+        }
+        
+        function updateLivePreview(finalPalette) {
+            if (finalPalette.length < 3) return;
+            const baseHue = state.baseColor.h;
+            const ui = {
+                bg: { l: state.theme === 'dark' ? 0.1 : 0.98, c: 0.02, h: baseHue },
+                text: { l: state.theme === 'dark' ? 0.95 : 0.1, c: 0.02, h: baseHue },
+                surface: { l: state.theme === 'dark' ? 0.15 : 0.94, c: 0.03, h: baseHue },
+                border: { l: state.theme === 'dark' ? 0.25 : 0.88, c: 0.04, h: baseHue },
+            };
+            const [primary, secondary, accent] = finalPalette;
+            const getContrast = (hex1, hex2) => {
+                const lum1 = getLuminance(hex1), lum2 = getLuminance(hex2);
+                return (Math.max(lum1, lum2) + 0.05) / (Math.min(lum1, lum2) + 0.05);
+            };
+            const styleMap = {
+                '--color-bg': oklchToString(ui.bg),
+                '--color-text': oklchToString(ui.text),
+                '--color-text-muted': oklchToString({...ui.text, l: state.theme === 'dark' ? 0.6 : 0.4 }),
+                '--color-surface': oklchToString(ui.surface),
+                '--color-border': oklchToString(ui.border),
+                '--color-primary': oklchToString(primary),
+                '--color-secondary': oklchToString(secondary),
+                '--color-accent': oklchToString(accent),
+                '--color-primary-text': getContrast(oklchToHex(primary), '#FFF') > 4.5 ? '#FFF' : '#000',
+                '--color-secondary-text': getContrast(oklchToHex(secondary), '#FFF') > 4.5 ? '#FFF' : '#000',
+                '--color-accent-text': getContrast(oklchToHex(accent), '#FFF') > 4.5 ? '#FFF' : '#000',
+            };
+            for (const [key, value] of Object.entries(styleMap)) {
+                document.documentElement.style.setProperty(key, value);
+            }
+        }
+        
+        function getLuminance(hex) {
+            const rgb = parseInt(hex.substring(1), 16);
+            let r = (rgb >> 16) & 0xff, g = (rgb >> 8) & 0xff, b = rgb & 0xff;
+            [r, g, b] = [r / 255, g / 255, b / 255].map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+        
+        // --- EVENT HANDLERS ---
+        function handleColorChange(e) { state.baseColor = hexToOklch(e.target.value); state.lockedColors = {}; render(); updateURL(); }
+        function handleHarmonyChange(e) { state.harmony = e.target.value; render(); updateURL(); }
+        function handleShuffle() { state.baseColor = { l: 0.6 + Math.random() * 0.15, c: 0.1 + Math.random() * 0.15, h: Math.random() * 360 }; state.lockedColors = {}; elements.baseColorPicker.value = oklchToHex(state.baseColor); render(); updateURL(); }
+        
+        function handleSliderChange() {
+            state.lightnessVariation = parseInt(elements.lightnessSlider.value, 10);
+            elements.lightnessValue.textContent = `${state.lightnessVariation}%`;
+            state.chromaVariation = parseInt(elements.chromaSlider.value, 10);
+            elements.chromaValue.textContent = `${state.chromaVariation}%`;
+            
+            state.palette = generatePalette();
+            const finalPalette = getFinalPalette();
+            renderAccentPalette(finalPalette);
+            updateLivePreview(finalPalette);
+
+            updateURL();
+        }
+
+        function handleColorCountChange(amount) {
+            const newCount = state.colorCount + amount;
+            if (newCount >= 3 && newCount <= 10) {
+                state.colorCount = newCount;
+                elements.colorCountDisplay.textContent = state.colorCount;
+                elements.removeColorBtn.disabled = state.colorCount <= 3;
+                elements.addColorBtn.disabled = state.colorCount >= 10;
+                state.lockedColors = {};
+                render();
+                updateURL();
+            }
+        }
+        function handlePaletteClick(e) {
+            const copyBtn = e.target.closest('.copy-btn');
+            const lockBtn = e.target.closest('.lock-btn');
+            if (copyBtn) {
+                navigator.clipboard.writeText(copyBtn.dataset.hex);
+                copyBtn.setAttribute('data-tooltip', 'Copied!');
+                setTimeout(() => copyBtn.setAttribute('data-tooltip', 'Copy HEX'), 1500);
+            }
+            if (lockBtn) {
+                const index = parseInt(lockBtn.dataset.index, 10);
+                if (state.lockedColors[index]) delete state.lockedColors[index];
+                else state.lockedColors[index] = getFinalPalette()[index];
+                render();
+                updateURL();
+            }
+        }
+        
+        // --- EXPORT LOGIC ---
+        function simpleSyntaxHighlight(code, lang) {
+            const rules = {
+                comment: [[/(\/\*[\s\S]*?\*\/)/g, 'text-gray-500'], [/(\/\/.*)/g, 'text-gray-500']],
+                css: [[/([:;{}])/g, 'text-gray-500'], [/(--[a-zA-Z0-9-]+)/g, 'text-purple-400'], [/(oklch\(.*?\))|(rgb\(.*?\))|(hsl\(.*?\))/g, 'text-teal-300'], [/(#[0-9a-fA-F]{3,8})/g, 'text-teal-300']],
+                scss: [[/([:;{}()$])/g, 'text-gray-500'], [/(\$[a-zA-Z0-9-]+)/g, 'text-pink-400'], [/(oklch\(.*?\))|(rgb\(.*?\))|(hsl\(.*?\))/g, 'text-teal-300'], [/(#[0-9a-fA-F]{3,8})/g, 'text-teal-300']],
+                tailwind: [[/([\[\]'{},])/g, 'text-gray-500'], [/([a-zA-Z0-9-]+:)/g, 'text-sky-400'], [/('.*?')/g, 'text-amber-300']],
+                json: [[/([\[\]{},])/g, 'text-gray-500'], [/(".*?")/g, 'text-amber-300']],
+                svg: [[/(&lt;[a-zA-Z0-9\s"=\/.-]+&gt;)/g, 'text-gray-500'], [/([a-zA-Z]+)="(.*?)"/g, `<span class="text-sky-400">$1</span>=<span class="text-amber-300">"$2"</span>`]]
+            };
+            let highlighted = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const langRules = rules[lang] ? [...rules.comment, ...rules[lang]] : rules.comment;
+            langRules.forEach(([regex, replacement]) => {
+                highlighted = highlighted.replace(regex, (match, ...groups) => {
+                    if (typeof replacement === 'string' && replacement.includes('$1')) {
+                         return replacement.replace('$1', `<span class="text-sky-400">${groups[0]}</span>`).replace('$2', `<span class="text-amber-300">"${groups[1]}"</span>`);
+                    }
+                    return `<span class="${replacement}">${match}</span>`;
+                });
+            });
+            return highlighted;
+        }
+
+        function getNamedPalette() {
+            const finalPalette = getFinalPalette();
+            const namedAccentColors = finalPalette.map((color, i) => {
+                const names = ['primary', 'secondary', 'accent'];
+                const name = i < names.length ? names[i] : `accent-${i + 1}`;
+                return {
+                    name: name,
+                    formats: getAllColorFormats(color)
+                };
+            });
+
+            const baseHue = state.baseColor.h;
+            const uiColorsRaw = {
+                'background': { l: state.theme === 'dark' ? 0.1 : 0.98, c: 0.02, h: baseHue },
+                'surface': { l: state.theme === 'dark' ? 0.15 : 0.94, c: 0.03, h: baseHue },
+                'border': { l: state.theme === 'dark' ? 0.25 : 0.88, c: 0.04, h: baseHue },
+                'text': { l: state.theme === 'dark' ? 0.95 : 0.1, c: 0.02, h: baseHue },
+            };
+
+            const namedUiColors = Object.entries(uiColorsRaw).map(([name, oklch]) => ({
+                name: name,
+                formats: getAllColorFormats(oklch)
+            }));
+            
+            return {
+                accent: namedAccentColors,
+                ui: namedUiColors
+            };
+        }
+
+        function generateExportContent(type) {
+            const { accent: accentColors, ui: uiColors } = getNamedPalette();
+            const allColors = [...accentColors, ...uiColors];
+            const colorFormat = state.currentExportColorFormat;
+
+            switch(type) {
+                case 'css': {
+                    const accentVars = accentColors.map(c => `  --color-${c.name}: ${c.formats[colorFormat]};`).join('\n');
+                    const uiVars = uiColors.map(c => `  --color-${c.name}: ${c.formats[colorFormat]};`).join('\n');
+                    return `/* CSS Custom Properties */\n:root {\n  /* Accent Colors */\n${accentVars}\n\n  /* UI Colors */\n${uiVars}\n}`;
+                }
+                case 'scss': {
+                    const accentVars = accentColors.map(c => `$color-${c.name}: ${c.formats[colorFormat]};`).join('\n');
+                    const uiVars = uiColors.map(c => `$color-${c.name}: ${c.formats[colorFormat]};`).join('\n');
+                    return `// SCSS Variables\n// Accent Colors\n${accentVars}\n\n// UI Colors\n${uiVars}`;
+                }
+                case 'tailwind': {
+                    const colorsString = allColors.map(c => `        '${c.name}': '${c.formats.hex}',`).join('\n');
+                    return `// tailwind.config.js\n// Note: Tailwind CSS requires HEX values.\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n${colorsString}\n      }\n    }\n  }\n};`;
+                }
+                case 'json': {
+                    const jsonObject = {
+                        accentColors: accentColors.reduce((acc, c) => ({...acc, [c.name]: c.formats }), {}),
+                        uiColors: uiColors.reduce((acc, c) => ({...acc, [c.name]: c.formats }), {})
+                    };
+                    return JSON.stringify(jsonObject, null, 2);
+                }
+                case 'svg': {
+                    const rectWidth = 100;
+                    const svgWidth = rectWidth * accentColors.length;
+                    const rects = accentColors.map((c, i) => `  <rect x="${i * rectWidth}" y="0" width="${rectWidth}" height="400" fill="${c.formats.hex}" />`).join('\n');
+                    const texts = accentColors.map((c, i) => `  <text x="${i * rectWidth + rectWidth/2}" y="430" fill="${state.theme === 'dark' ? '#fff' : '#000'}" text-anchor="middle" font-family="monospace">${c.formats.hex.toUpperCase()}</text>`).join('\n');
+                    return `<svg width="${svgWidth}" height="450" viewBox="0 0 ${svgWidth} 450" xmlns="http://www.w3.org/2000/svg">\n  <title>Accent Palette</title>\n${rects}\n${texts}\n</svg>`;
+                }
+                default: return '';
+            }
+        }
+        
+        function openExportModal() {
+            updateExportContent();
+            elements.exportModal.classList.remove('opacity-0', 'pointer-events-none');
+            elements.exportModal.querySelector('.glass-panel').classList.remove('scale-95');
+        }
+
+        function updateExportContent() {
+            const code = generateExportContent(state.currentExportFormat);
+            
+            if (state.currentExportFormat === 'json') {
+                elements.exportContent.textContent = code;
+            } else {
+                 elements.exportContent.innerHTML = simpleSyntaxHighlight(code, state.currentExportFormat);
+            }
+            
+            elements.exportTabsContainer.querySelectorAll('.export-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.export === state.currentExportFormat);
+            });
+            elements.exportColorFormatContainer.querySelectorAll('.color-format-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.format === state.currentExportColorFormat);
+            });
+        }
+        
+        // --- URL & THEME MANAGEMENT ---
+        function toggleTheme() {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('palette-theme', state.theme);
+            updateThemeUI();
+        }
+        
+        function updateThemeUI() {
+            document.documentElement.classList.toggle('light', state.theme === 'light');
+            elements.themeIconSun.style.transform = state.theme === 'light' ? 'scale(0) rotate(-90deg)' : 'scale(1) rotate(0deg)';
+            elements.themeIconMoon.style.transform = state.theme === 'light' ? 'scale(1) rotate(0deg)' : 'scale(0) rotate(90deg)';
+            renderUIColors(); 
+            updateLivePreview(getFinalPalette());
+        }
+        
+        function updateURL() {
+            const params = new URLSearchParams();
+            params.set('base', oklchToHex(state.baseColor).substring(1));
+            params.set('harmony', state.harmony);
+            params.set('l', state.lightnessVariation);
+            params.set('c', state.chromaVariation);
+            params.set('count', state.colorCount);
+            const lockedStr = Object.entries(state.lockedColors).map(([i, c]) => `${i}:${oklchToHex(c).substring(1)}`).join(',');
+            if (lockedStr) params.set('locked', lockedStr);
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            try { window.history.replaceState({}, '', newUrl); } 
+            catch (error) {
+                console.warn("Could not update URL history:", error.message);
+                const fullUrl = new URL(window.location.href);
+                fullUrl.search = params.toString();
+                return fullUrl.href;
+            }
+            return window.location.href;
+        }
+
+        function initFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const base = params.get('base'), harmony = params.get('harmony'), lVar = params.get('l'), cVar = params.get('c'), locked = params.get('locked'), count = params.get('count');
+            if (base) elements.baseColorPicker.value = '#' + base;
+            if (harmony) elements.harmonySelect.value = harmony;
+            if (lVar) elements.lightnessSlider.value = lVar;
+            if (cVar) elements.chromaSlider.value = cVar;
+            if (count) state.colorCount = Math.max(3, Math.min(10, parseInt(count, 10)));
+            if(locked) locked.split(',').forEach(p => { const [i, h] = p.split(':'); state.lockedColors[i] = hexToOklch('#' + h); });
+        }
+        
+        // --- INITIALIZATION ---
+        function init() {
+            initFromURL();
+            Object.assign(state, {
+                baseColor: hexToOklch(elements.baseColorPicker.value),
+                harmony: elements.harmonySelect.value,
+                lightnessVariation: parseInt(elements.lightnessSlider.value, 10),
+                chromaVariation: parseInt(elements.chromaSlider.value, 10),
+                theme: localStorage.getItem('palette-theme') || 'dark',
+            });
+            elements.lightnessValue.textContent = `${state.lightnessVariation}%`;
+            elements.chromaValue.textContent = `${state.chromaVariation}%`;
+            elements.colorCountDisplay.textContent = state.colorCount;
+            elements.removeColorBtn.disabled = state.colorCount <= 3;
+            elements.addColorBtn.disabled = state.colorCount >= 10;
+            
+            elements.baseColorPicker.addEventListener('input', handleColorChange);
+            elements.harmonySelect.addEventListener('change', handleHarmonyChange);
+            elements.shuffleBtn.addEventListener('click', handleShuffle);
+            elements.lightnessSlider.addEventListener('input', handleSliderChange);
+            elements.chromaSlider.addEventListener('input', handleSliderChange);
+            elements.paletteContainer.addEventListener('click', handlePaletteClick);
+            elements.uiColorsContainer.addEventListener('click', handlePaletteClick);
+            elements.openExportModalBtn.addEventListener('click', openExportModal);
+            elements.closeModalBtn.addEventListener('click', () => {
+                elements.exportModal.classList.add('opacity-0', 'pointer-events-none');
+                elements.exportModal.querySelector('.glass-panel').classList.add('scale-95');
+            });
+            elements.exportUrlBtn.addEventListener('click', (e) => {
+                const btn = e.currentTarget;
+                const span = btn.querySelector('span');
+                const url = updateURL();
+                navigator.clipboard.writeText(url).then(() => {
+                    const originalText = span.textContent;
+                    span.textContent = 'Copied!';
+                    setTimeout(() => { span.textContent = 'Share URL'; }, 1500);
+                }).catch(err => {
+                    console.error('Failed to copy URL: ', err);
+                    span.textContent = 'Error!';
+                    setTimeout(() => { span.textContent = 'Share URL'; }, 1500);
+                });
+            });
+            elements.exportTabsContainer.addEventListener('click', (e) => {
+                const tab = e.target.closest('.export-tab');
+                if(tab) {
+                    state.currentExportFormat = tab.dataset.export;
+                    updateExportContent();
+                }
+            });
+            elements.exportColorFormatContainer.addEventListener('click', (e) => {
+                const tab = e.target.closest('.color-format-tab');
+                if(tab) {
+                    state.currentExportColorFormat = tab.dataset.format;
+                    updateExportContent();
+                }
+            });
+            elements.copyCodeBtn.addEventListener('click', (e) => {
+                const btn = e.currentTarget;
+                const copyIcon = btn.querySelector('.copy-icon');
+                const checkIcon = btn.querySelector('.check-icon');
+                const copyText = btn.querySelector('.copy-text');
+                const codeToCopy = elements.exportContent.textContent;
+
+                navigator.clipboard.writeText(codeToCopy).then(() => {
+                    copyText.textContent = 'Copied!';
+                    copyIcon.classList.add('hidden');
+                    checkIcon.classList.remove('hidden');
+                    btn.style.backgroundColor = 'hsl(var(--accent))';
+                    btn.style.color = 'white';
+
+                    setTimeout(() => {
+                        copyText.textContent = 'Copy';
+                        copyIcon.classList.remove('hidden');
+                        checkIcon.classList.add('hidden');
+                        btn.style.backgroundColor = '';
+                        btn.style.color = '';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    copyText.textContent = 'Error!';
+                     setTimeout(() => {
+                        copyText.textContent = 'Copy';
+                    }, 2000);
+                });
+            });
+            elements.themeToggleBtn.addEventListener('click', toggleTheme);
+            elements.addColorBtn.addEventListener('click', () => handleColorCountChange(1));
+            elements.removeColorBtn.addEventListener('click', () => handleColorCountChange(-1));
+            
+            updateThemeUI();
+            render();
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>
+
